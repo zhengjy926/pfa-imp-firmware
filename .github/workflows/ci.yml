@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # M0 骨架冒烟检查：验证仓库关键文档齐全。
+  # M1 起在此 workflow 增加：cppcheck(MISRA C:2012) / Unity 主机单元测试 /
+  # arm-none-eabi-gcc 交叉编译验证（ADR 0001 双构建策略的 CI 侧）。
+  skeleton:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 仓库结构冒烟检查
+        run: |
+          set -e
+          test -f CONTEXT.md
+          test -f README.md
+          test -f NOTICE
+          test -f docs/adr/0001-dual-build-toolchain.md
+          test -f docs/adr/0002-self-written-ad5941-driver.md
+          test -f docs/adr/0003-lightweight-iec62304-traceability.md
+          test -f docs/adr/0004-zephyr-compatible-device-model.md
+          test -f docs/requirements.md
+          echo "skeleton OK"

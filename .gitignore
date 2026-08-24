@@ -1,0 +1,41 @@
+# ==== Keil MDK ====
+firmware/MDK-ARM/*.uvoptx
+firmware/MDK-ARM/*.uvguix.*
+firmware/MDK-ARM/**/*.dep
+firmware/MDK-ARM/**/RTE/
+firmware/MDK-ARM/**/DebugConfig/
+firmware/MDK-ARM/**/Objects/
+firmware/MDK-ARM/**/Listings/
+firmware/MDK-ARM/**/*.crf
+firmware/MDK-ARM/**/*.d
+firmware/MDK-ARM/**/*.o
+firmware/MDK-ARM/**/*.axf
+firmware/MDK-ARM/**/*.hex
+firmware/MDK-ARM/**/*.htm
+firmware/MDK-ARM/**/*.lnp
+firmware/MDK-ARM/**/*.map
+firmware/MDK-ARM/**/*.plg
+firmware/MDK-ARM/**/*.tra
+firmware/MDK-ARM/**/*.sct.bak
+*.bak
+
+# J-Link / RTT
+JLinkLog.txt
+JLinkSettings.ini
+
+# ==== CMake / 构建产物 ====
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+
+# ==== Python ====
+__pycache__/
+*.pyc
+
+# ==== 编辑器 / 系统 ====
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+*.swp

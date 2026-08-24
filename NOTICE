@@ -1,0 +1,15 @@
+# NOTICE — 开源软件清单
+
+本仓库为私有仓库。本文件记录进入仓库的第三方开源/许可组件（取证产品合规要求）。
+
+当前状态（M0）：**尚无第三方组件进入仓库**。
+
+M1 起预计引入，届时逐项补全下表（组件 | 版本 | 来源 | 许可证 | 修改说明）：
+
+| 组件 | 版本 | 来源 | 许可证 | 修改说明 |
+|---|---|---|---|---|
+| FreeRTOS Kernel | 待定（LTS tag） | github.com/FreeRTOS/FreeRTOS-Kernel | MIT | 原样 |
+| EasyLogger | 待定 | github.com/armink/EasyLogger | MIT | 原样 |
+| SEGGER RTT | 随本机 J-Link 版本 | SEGGER J-Link 安装包 | SEGGER 专有（随 J-Link 分发） | 原样 |
+| STM32F1 HAL/CMSIS | 待定 | github.com/STMicroelectronics/STM32CubeF1 | BSD-3-Clause | 仅拷贝用到的模块 |
+| Zephyr sys 子集（ring_buffer/crc/dlist/device.h 等） | 待定（M1 锁定 tag） | github.com/zephyrproject-rtos/zephyr | Apache-2.0 | 裁剪 + compat 内核桩适配 |
