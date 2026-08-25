@@ -2,7 +2,7 @@
 
 PFA（脉冲电场消融）手术回路阻抗采集板固件。
 
-**硬件基线**：STM32F103RET6 + AD5941（SPI1，阻抗测量）+ TCA6424A（I2C1，24 路继电器）+ AT24C256C（I2C2，参数存储）+ USART1（调试桥）/ USART3（上位机）/ UART5（贴靠板）。
+**硬件基线**：STM32F103RET6 + AD5941（SPI1，阻抗测量）+ IO 扩展驱动多路继电器（电极 24、顶电极/顶电极极性/杆极性/标测/回路/负极板各 1）+ AT24C256C（I2C2，参数存储）+ USART1（调试桥）/ USART3（上位机）/ UART5（贴靠阻抗采集板）。放电使能不在本板。
 
 > ⚠️ 当前状态：**M0 仓库骨架**。固件源码自 M1 起进入 `firmware/`。
 
@@ -11,8 +11,9 @@ PFA（脉冲电场消融）手术回路阻抗采集板固件。
 | 文档 | 说明 |
 |---|---|
 | [CONTEXT.md](CONTEXT.md) | 领域术语表（唯一权威定义） |
-| [docs/adr/](docs/adr/) | 架构决策记录（ADR 0001~0004） |
+| [docs/adr/](docs/adr/) | 架构决策记录（ADR 0001~0006） |
 | [docs/requirements.md](docs/requirements.md) | IEC 62304 轻量需求追踪矩阵 |
+| [docs/research/pfa-discharge-circuit.md](docs/research/pfa-discharge-circuit.md) | PFA 放电回路与术语对照（厂家 IFU / PMA / 标准） |
 | [docs/pin-map.md](docs/pin-map.md) | 引脚映射事实源（M1 提供） |
 | [docs/architecture.md](docs/architecture.md) | 分层架构说明（M1 提供） |
 
