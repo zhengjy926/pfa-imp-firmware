@@ -52,6 +52,9 @@ def locate_misra_addon(cppcheck: str) -> str:
         pathlib.Path(r"C:\Program Files\Cppcheck\addons"),
     ]
 
+    # Debian/Ubuntu 装在多架构目录下，架构名不固定，只能枚举
+    candidates.extend(sorted(pathlib.Path("/usr/lib").glob("*/cppcheck/addons")))
+
     resolved = shutil.which(cppcheck)
     if resolved is not None:
         candidates.insert(0, pathlib.Path(resolved).resolve().parent / "addons")

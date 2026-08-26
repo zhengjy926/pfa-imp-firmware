@@ -111,6 +111,11 @@ python3 tools/run_cppcheck.py
 已知且被接受的偏离登记在 `tools/cppcheck/suppressions.txt`，写法与举证要求见该文件
 开头。只在个别位置成立的偏离用源码内 `// cppcheck-suppress <id>` 就近说明。
 
+MISRA 规则原文有版权，不入仓，因此不传 `--rule-texts`。违规会以
+`misra-c2012-<规则号>` 的形式报出而没有规则描述，看到规则号后请对照 MISRA C:2012
+正式文本。另注意 `misra.py` 只实现了规则中的一个子集（例如 Rule 17.4 就不在其内），
+门禁通过不等于全量合规。
+
 ## 版本号
 
 语义化版本，自 **0.1.0** 起。事实源是 `firmware/app/include/app_version.h`；
