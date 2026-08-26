@@ -12,7 +12,7 @@ PFA（脉冲电场消融）手术回路阻抗采集板固件。
 | 文档 | 说明 |
 |---|---|
 | [CONTEXT.md](CONTEXT.md) | 领域术语表（唯一权威定义） |
-| [docs/adr/](docs/adr/) | 架构决策记录（ADR 0001~0007） |
+| [docs/adr/](docs/adr/) | 架构决策记录（ADR 0001~0010） |
 | [docs/requirements.md](docs/requirements.md) | IEC 62304 轻量需求追踪矩阵 |
 | [docs/protocol/ecsp.md](docs/protocol/ecsp.md) | ECSP 通用规范钉扎快照（设备组标准，非本仓库真源） |
 | [docs/protocol/loop-impedance-board.md](docs/protocol/loop-impedance-board.md) | 回路阻抗采集板产品命令 |
@@ -32,7 +32,6 @@ firmware/
 ├── bsp/          # 板级：初始化、引脚、HAL 总线设备注册
 ├── third_party/  # 第三方组件（CMSIS / STM32 HAL / FreeRTOS / ...）
 ├── startup/      # 启动文件、中断向量、GNU ld 链接脚本
-├── system/       # 时钟与 Flash 时序初始化
 └── MDK-ARM/      # Keil 工程与 armlink 分散加载描述
 ```
 

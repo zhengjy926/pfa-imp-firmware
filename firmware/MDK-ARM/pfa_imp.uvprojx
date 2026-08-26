@@ -223,7 +223,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls>-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wdouble-promotion -Werror -ffunction-sections -fdata-sections -fno-common -isystem ../third_party/cmsis_core/Include -isystem ../third_party/cmsis_device_f1/Include</MiscControls>
-              <Define>STM32F103xE</Define>
+              <Define>STM32F103xE,HSE_VALUE=16000000</Define>
               <Undefine></Undefine>
               <IncludePath>..\app\include;..\bsp\include</IncludePath>
             </VariousControls>
@@ -241,7 +241,7 @@
             <ClangAsOpt>4</ClangAsOpt>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>STM32F103xE</Define>
+              <Define>STM32F103xE,HSE_VALUE=16000000</Define>
               <Undefine></Undefine>
               <IncludePath></IncludePath>
             </VariousControls>
@@ -287,12 +287,12 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>system</GroupName>
+          <GroupName>cmsis_device_f1</GroupName>
           <Files>
             <File>
               <FileName>system_stm32f1xx.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\system\src\system_stm32f1xx.c</FilePath>
+              <FilePath>..\third_party\cmsis_device_f1\Source\Templates\system_stm32f1xx.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -50,6 +50,7 @@
  * @retval None
  * @note   SystemInit 运行在 C 运行时初始化之前，无法写全局变量，故内核时钟频率
  *         在这里从寄存器回读刷新，使后续外设配置拿到真实的 HCLK。
+ *         骨架阶段 ST 模板不升频，回读应为 HSI 8 MHz（见 ADR 0009）。
  *         M1 骨架不注册任何设备，也不初始化任何外设。
  */
 void bsp_board_init(void)

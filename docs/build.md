@@ -3,8 +3,9 @@
 本仓库并行维护两套工程描述：本机开发用手工维护的 Keil MDK 工程，CI 用 CMake +
 arm-none-eabi-gcc 做编译验证。取舍与代价见 [ADR 0001](adr/0001-dual-build-toolchain.md)。
 
-**不使用 STM32CubeMX。** 引脚映射、启动文件、中断向量与时钟初始化全部手工维护，
-`.uvprojx` 也是手写的。CubeMX 生成的初始化代码与工程不接受进入本仓库。
+**不使用 STM32CubeMX。** 引脚映射、启动文件与中断向量手工维护，`.uvprojx` 也是手写的。
+CubeMX 生成的初始化代码与工程不接受进入本仓库。`SystemInit` 用 cmsis-device-f1
+原样模板（不配 PLL），72 MHz 升频另做，见 [ADR 0009](adr/0009-st-system-init-hsi-skeleton.md)。
 
 目录落位见 [README 的「目录落位」](../README.md#目录落位)，本文不重复一份。
 
@@ -65,6 +66,9 @@ Group 的头文件只为方便浏览，不算编译输入，不参与比对。
   `PFA_IMP_INCLUDE_DIRS` / `PFA_IMP_SYSTEM_INCLUDE_DIRS`、`pfa_imp.uvprojx` 的
   `IncludePath`（第三方路径走 `MiscControls` 里的 `-isystem`）、以及
   `tools/run_cppcheck.py` 的 `INCLUDE_DIRS` / `SYSTEM_INCLUDE_DIRS`。
+- 预处理器宏同样要改三处：`CMakeLists.txt` 的 `target_compile_definitions`、
+  `pfa_imp.uvprojx` 的 `<Define>`、`run_cppcheck.py` 的 `-D`（当前为 `STM32F103xE`
+  与 `HSE_VALUE=16000000`）。
 - 告警开关在 `firmware/CMakeLists.txt` 与 `pfa_imp.uvprojx` 的 `MiscControls` 里各写
   一份，改一处要同步另一处，否则两条工具链的严格程度会悄悄拉开。
 
@@ -123,9 +127,8 @@ MISRA 规则原文有版权，不入仓，因此不传 `--rule-texts`。违规�
 
 ## 时钟
 
-骨架阶段一律使用片内 HSI（8 MHz）经 PLL 倍频到 **64 MHz**：SYSCLK 64 MHz、
-HCLK 64 MHz、PCLK1 32 MHz、PCLK2 64 MHz，Flash 2 个等待周期。
-
-本板原理图尚未确认外部晶振是否存在及其频率，因此**不启用 HSE**，也不按「常见开发板
-是 8 MHz 晶振」去假设 72 MHz。确认后再在 `firmware/system/src/system_stm32f1xx.c`
-扩展，并同步更新本节。
+骨架阶段保持复位缺省：**HSI 8 MHz 直供**（ST `system_stm32f1xx.c` 的 `SystemInit` 不配 PLL）。
+板级目标是 HSE 16 MHz / 2 × 9 = **72 MHz**（HCLK 72、PCLK1 36、PCLK2 72），升频函数尚未落地，
+且必须在配置 USART3/UART5 之前完成。`HSE_VALUE=16000000` 已在 CMake、Keil 与 cppcheck
+三处钉死，供日后 `SystemCoreClockUpdate` 使用。取舍见
+[ADR 0009](adr/0009-st-system-init-hsi-skeleton.md)。

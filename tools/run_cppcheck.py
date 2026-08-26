@@ -8,15 +8,16 @@ tools/firmware_tree.py，那里也说明了为什么它与源登记门禁共用�
 被扫描的文件列表由目录结构推导，而不是写死清单：新增自研源文件会自动进入扫描，
 不需要再改这个脚本。
 
-本地与 CI 走同一个入口，避免「CI 上才发现」。MISRA 插件的位置由脚本自己探测，不在
-CI 配置里写死路径——各发行版把 misra.py 装在不同地方，写死会让门禁在换 runner 镜像时
-静默失效。用法：
+本地与 CI 走同一个入口，避免「CI 上才发现」。cppcheck 本体与 MISRA 插件的位置由脚本
+自己探测，不在 CI 配置里写死路径——各发行版把 misra.py 装在不同地方，写死会让门禁在换
+runner 镜像时静默失效。用法：
     run_cppcheck.py [--cppcheck <exe>] [--addon <misra.py 或 misra>]
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import shutil
 import subprocess
@@ -36,6 +37,59 @@ SYSTEM_INCLUDE_DIRS = (
     "firmware/third_party/cmsis_device_f1/Include",
 )
 
+# Windows 安装包不改 PATH，安装位置却是固定的
+WINDOWS_CPPCHECK_PATHS = (
+    pathlib.Path(r"C:\Program Files\Cppcheck\cppcheck.exe"),
+    pathlib.Path(r"C:\Program Files (x86)\Cppcheck\cppcheck.exe"),
+)
+
+# 透明加密客户端写在密文开头的文件头，见 reads_ciphertext
+CIPHERTEXT_MAGIC = b"%TSD-Header-###%"
+
+CIPHERTEXT_HINT = """\
+cppcheck 读到的是密文而不是源码，上面的告警全部无效——它分析的是加密后的字节。
+本机的透明加密客户端按可执行文件放行，cppcheck 不在受信任程序列表里。
+请 IT 把 cppcheck.exe 加进该列表；在那之前，静态分析门禁以 CI 的结果为准
+（仓库里存的是明文，CI 上的扫描不受影响）。"""
+
+
+def locate_cppcheck() -> str:
+    """找出 cppcheck 可执行文件，找不到就退回命令名让调用方拿到原生的报错。
+
+    Windows 安装包不把自己加进 PATH，装好之后直接跑脚本会得到「找不到命令」，与「根本
+    没装」的表现一模一样，容易让人误判门禁不可用。安装路径固定，探测一下就能省掉这层
+    误会。
+    """
+    if shutil.which("cppcheck") is not None:
+        return "cppcheck"
+
+    for candidate in WINDOWS_CPPCHECK_PATHS:
+        if candidate.is_file():
+            return candidate.as_posix()
+
+    return "cppcheck"
+
+
+def reads_ciphertext(cppcheck: str, source: str, repo_root: pathlib.Path) -> bool:
+    """判断 cppcheck 读到的源文件是不是密文。
+
+    透明加密客户端按可执行文件放行：受信任的进程读到明文，其余的读到密文。python 一般
+    在放行名单里，所以脚本自己读文件毫无异常，看不出问题；只有让 cppcheck 去读一遍，才
+    知道它眼里的文件长什么样。不做这个判断的话，症状是满屏乱码加一句 unhandledChar，
+    很难联想到是加密而不是代码本身有毛病。
+
+    只在扫描已经失败后才调用，happy path 不额外付出一次进程启动的代价。
+    """
+    completed = subprocess.run(
+        [cppcheck, "--quiet", "--language=c", source],
+        cwd=repo_root,
+        capture_output=True,
+        check=False,
+    )
+    return any(
+        CIPHERTEXT_MAGIC in stream for stream in (completed.stdout, completed.stderr)
+    )
+
 
 def locate_misra_addon(cppcheck: str) -> str:
     """找出 misra.py 的位置，找不到就退回插件名让 cppcheck 自己解析。
@@ -54,6 +108,12 @@ def locate_misra_addon(cppcheck: str) -> str:
 
     # Debian/Ubuntu 装在多架构目录下，架构名不固定，只能枚举
     candidates.extend(sorted(pathlib.Path("/usr/lib").glob("*/cppcheck/addons")))
+
+    # Windows 安装包不带 addons/，misra.py 得另外取。约定放在用户目录下：写 Program
+    # Files 需要管理员权限，放 %TEMP% 又会被清掉。
+    local_appdata = os.environ.get("LOCALAPPDATA")
+    if local_appdata:
+        candidates.append(pathlib.Path(local_appdata) / "cppcheck" / "addons")
 
     resolved = shutil.which(cppcheck)
     if resolved is not None:
@@ -79,7 +139,11 @@ def collect_sources(repo_root: pathlib.Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="对自研固件源跑 cppcheck + MISRA")
-    parser.add_argument("--cppcheck", default="cppcheck", help="cppcheck 可执行文件")
+    parser.add_argument(
+        "--cppcheck",
+        default=None,
+        help="cppcheck 可执行文件；缺省时自动探测",
+    )
     parser.add_argument(
         "--addon",
         default=None,
@@ -99,10 +163,11 @@ def main() -> int:
         print("firmware/ 下没有需要扫描的自研源文件", file=sys.stderr)
         return 1
 
-    addon = args.addon if args.addon is not None else locate_misra_addon(args.cppcheck)
+    cppcheck = args.cppcheck if args.cppcheck is not None else locate_cppcheck()
+    addon = args.addon if args.addon is not None else locate_misra_addon(cppcheck)
 
     command = [
-        args.cppcheck,
+        cppcheck,
         f"--addon={addon}",
         "--std=c99",
         "--language=c",
@@ -111,6 +176,7 @@ def main() -> int:
         "--inline-suppr",
         "--error-exitcode=1",
         "-DSTM32F103xE",
+        "-DHSE_VALUE=16000000",
     ]
 
     # 把被排除的子树也从「告警归属」上排除掉。cppcheck 没有 -isystem 的等价物：
@@ -130,7 +196,16 @@ def main() -> int:
     command.extend(sources)
 
     print("运行：" + " ".join(command), flush=True)
-    completed = subprocess.run(command, cwd=repo_root, check=False)
+    try:
+        completed = subprocess.run(command, cwd=repo_root, check=False)
+    except FileNotFoundError:
+        print(f"找不到 cppcheck 可执行文件：{cppcheck}", file=sys.stderr)
+        print("用 --cppcheck 指定路径，或把安装目录加进 PATH。", file=sys.stderr)
+        return 1
+
+    if completed.returncode != 0 and reads_ciphertext(cppcheck, sources[0], repo_root):
+        print(CIPHERTEXT_HINT, file=sys.stderr)
+
     return completed.returncode
 
 

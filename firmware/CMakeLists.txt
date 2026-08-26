@@ -37,7 +37,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(PFA_IMP_SOURCES
     app/src/main.c
     bsp/src/bsp_board.c
-    system/src/system_stm32f1xx.c
+    third_party/cmsis_device_f1/Source/Templates/system_stm32f1xx.c
     startup/startup_stm32f103xe.S
 )
 
@@ -66,7 +66,17 @@ set_target_properties(pfa_imp PROPERTIES SUFFIX ".elf")
 target_include_directories(pfa_imp PRIVATE ${PFA_IMP_INCLUDE_DIRS})
 target_include_directories(pfa_imp SYSTEM PRIVATE ${PFA_IMP_SYSTEM_INCLUDE_DIRS})
 
-target_compile_definitions(pfa_imp PRIVATE STM32F103xE)
+target_compile_definitions(pfa_imp PRIVATE
+    STM32F103xE
+    HSE_VALUE=16000000
+)
+
+# 原样入仓的厂商 .c 不以本仓库的 -Werror 验收（ADR 0004 / 0009）
+set_source_files_properties(
+    third_party/cmsis_device_f1/Source/Templates/system_stm32f1xx.c
+    PROPERTIES
+        COMPILE_OPTIONS "-w"
+)
 
 target_compile_options(pfa_imp PRIVATE
     ${PFA_IMP_MCU_FLAGS}

@@ -11,7 +11,7 @@
 | 组件 | 版本 | 来源 | 许可证 | 修改说明 |
 |---|---|---|---|---|
 | CMSIS-Core (Cortex-M) | 发行 tag `5.9.0` | github.com/ARM-software/CMSIS_5 | Apache-2.0 | 原样拷贝 `CMSIS/Core/Include/` 下本项目实际用到的 5 个头文件：`core_cm3.h`、`cmsis_compiler.h`、`cmsis_gcc.h`、`cmsis_armclang.h`、`cmsis_version.h`。未拷贝其余架构与 MPU 头（STM32F103 无 MPU）。保留原 SPDX 版权头。 |
-| STM32F1 CMSIS 设备层 | 发行 tag `v4.3.5` | github.com/STMicroelectronics/cmsis-device-f1 | Apache-2.0 | 仅拷贝 `Include/` 下 3 个头文件：`stm32f1xx.h`、`stm32f103xe.h`、`system_stm32f1xx.h`。**未使用**上游 `Source/Templates/` 的 `system_stm32f1xx.c` 与启动文件模板——按 ADR 0001，时钟初始化、启动文件与中断向量为自研手工维护（见 `firmware/system/` 与 `firmware/startup/`）。上游头文件未带 SPDX 标识，原版权与许可声明原样保留。 |
+| STM32F1 CMSIS 设备层 | 发行 tag `v4.3.5` | github.com/STMicroelectronics/cmsis-device-f1 | Apache-2.0 | 拷贝 `Include/` 下 3 个头文件（`stm32f1xx.h`、`stm32f103xe.h`、`system_stm32f1xx.h`）以及 `Source/Templates/system_stm32f1xx.c`（原样，不改源码；`HSE_VALUE` 由编译宏外置为 16000000）。**未使用**上游启动文件模板——启动文件与中断向量仍为自研一份 `firmware/startup/startup_stm32f103xe.S`（见 ADR 0009）。上游文件未带 SPDX 标识，原版权与许可声明原样保留。 |
 
 ## 计划引入，尚未入仓
 
