@@ -66,6 +66,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends cppcheck
           cppcheck --version
+          # 换 runner 镜像后 misra.py 若挪了地方，这行日志能立刻说清挪到了哪
+          dpkg -L cppcheck | grep -E '\.py$' || echo "cppcheck 包内没有 .py 插件"
 
+      # 插件位置由脚本探测，不在这里写死路径
       - name: cppcheck（含 MISRA C:2012）
-        run: python3 tools/run_cppcheck.py --addon /usr/share/cppcheck/addons/misra.py
+        run: python3 tools/run_cppcheck.py

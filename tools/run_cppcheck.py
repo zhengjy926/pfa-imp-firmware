@@ -8,7 +8,9 @@ tools/firmware_tree.py，那里也说明了为什么它与源登记门禁共用�
 被扫描的文件列表由目录结构推导，而不是写死清单：新增自研源文件会自动进入扫描，
 不需要再改这个脚本。
 
-本地与 CI 走同一个入口，避免「CI 上才发现」。用法：
+本地与 CI 走同一个入口，避免「CI 上才发现」。MISRA 插件的位置由脚本自己探测，不在
+CI 配置里写死路径——各发行版把 misra.py 装在不同地方，写死会让门禁在换 runner 镜像时
+静默失效。用法：
     run_cppcheck.py [--cppcheck <exe>] [--addon <misra.py 或 misra>]
 """
 
@@ -16,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -34,6 +37,33 @@ SYSTEM_INCLUDE_DIRS = (
 )
 
 
+def locate_misra_addon(cppcheck: str) -> str:
+    """找出 misra.py 的位置，找不到就退回插件名让 cppcheck 自己解析。
+
+    cppcheck 接受插件名（如 misra）或 .py 的路径。前者依赖 cppcheck 自身的数据目录
+    配置，在部分发行版的包里解析不到；后者的路径又随发行版而异。所以先按已知位置找
+    文件，找不到再退回插件名——两条路都走不通时，让 cppcheck 自己报错，因为它的错误
+    信息比这里能给的更准确。
+    """
+    candidates = [
+        pathlib.Path("/usr/share/cppcheck/addons"),
+        pathlib.Path("/usr/lib/cppcheck/addons"),
+        pathlib.Path("/usr/local/share/cppcheck/addons"),
+        pathlib.Path(r"C:\Program Files\Cppcheck\addons"),
+    ]
+
+    resolved = shutil.which(cppcheck)
+    if resolved is not None:
+        candidates.insert(0, pathlib.Path(resolved).resolve().parent / "addons")
+
+    for directory in candidates:
+        addon = directory / "misra.py"
+        if addon.is_file():
+            return addon.as_posix()
+
+    return "misra"
+
+
 def collect_sources(repo_root: pathlib.Path) -> list[str]:
     firmware = repo_root / "firmware"
     sources: list[pathlib.Path] = []
@@ -49,8 +79,8 @@ def main() -> int:
     parser.add_argument("--cppcheck", default="cppcheck", help="cppcheck 可执行文件")
     parser.add_argument(
         "--addon",
-        default="misra",
-        help="MISRA 插件：插件名或 misra.py 的绝对路径",
+        default=None,
+        help="MISRA 插件：插件名或 misra.py 的绝对路径；缺省时自动探测",
     )
     parser.add_argument(
         "--repo-root",
@@ -66,9 +96,11 @@ def main() -> int:
         print("firmware/ 下没有需要扫描的自研源文件", file=sys.stderr)
         return 1
 
+    addon = args.addon if args.addon is not None else locate_misra_addon(args.cppcheck)
+
     command = [
         args.cppcheck,
-        f"--addon={args.addon}",
+        f"--addon={addon}",
         "--std=c99",
         "--language=c",
         "--platform=arm32-wchar_t4",

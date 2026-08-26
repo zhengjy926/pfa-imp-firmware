@@ -95,8 +95,12 @@ scatter-load，GCC 自行搬 `.data`、清 `.bss`）。这样 60 路 IRQ 的向�
 AC6 没有内置 MISRA 检查，合规门禁由 cppcheck 承担：
 
 ```bash
-python3 tools/run_cppcheck.py --addon /usr/share/cppcheck/addons/misra.py
+python3 tools/run_cppcheck.py
 ```
+
+`misra.py` 的位置由脚本按已知路径探测（找不到则退回插件名 `misra`），因此 CI 配置里
+不写死路径——各发行版装的地方不一样，写死会让门禁在换 runner 镜像时静默失效。位置特殊
+时用 `--addon <路径>` 指定。
 
 扫描范围由目录结构推导，排除 `firmware/sys/`（从 Zephyr 拷贝裁剪）与
 `firmware/third_party/`（第三方组件）——不把上游代码的告警算作本仓库缺陷
