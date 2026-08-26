@@ -6,10 +6,8 @@ on:
   pull_request:
 
 jobs:
-  # M0 骨架冒烟检查：验证仓库关键文档齐全。
-  # M1 起在此 workflow 增加：cppcheck(MISRA C:2012) / Unity 主机单元测试 /
-  # arm-none-eabi-gcc 交叉编译验证（ADR 0001 双构建策略的 CI 侧）。
-  skeleton:
+  # 仓库结构冒烟检查：M0 起就在，保证 CONTEXT、ADR、需求矩阵不会被误删。
+  docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,4 +22,50 @@ jobs:
           test -f docs/adr/0003-lightweight-iec62304-traceability.md
           test -f docs/adr/0004-zephyr-compatible-device-model.md
           test -f docs/requirements.md
-          echo "skeleton OK"
+          test -f docs/build.md
+          echo "docs OK"
+
+  # 交叉编译验证（ADR 0001 的 CI 侧）：只证明源码能编过、能链出镜像。
+  # 刻意不上传任何 .elf/.hex 产物——CI 不产出烧录件。
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装交叉工具链与构建工具
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi \
+            cmake ninja-build
+          arm-none-eabi-gcc --version
+
+      # 双工具链的源清单必须一致，否则会出现「只在一侧能编过」的文件
+      - name: 核对 Keil 与 CMake 的源登记一致
+        run: python3 tools/check_source_registration.py
+
+      - name: 配置
+        run: >
+          cmake -S firmware -B build/firmware -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/cmake/toolchain-arm-none-eabi.cmake"
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      # 构建的收尾步骤会统计镜像体积，并核对镜像内无动态内存分配符号
+      - name: 编译并链接固件镜像
+        run: cmake --build build/firmware
+
+  # 静态分析门禁：AC6 无内置 MISRA 检查，合规由 cppcheck 承担（ADR 0001）。
+  # 扫描范围排除 firmware/sys/ 与 firmware/third_party/（ADR 0004）。
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cppcheck
+          cppcheck --version
+
+      - name: cppcheck（含 MISRA C:2012）
+        run: python3 tools/run_cppcheck.py --addon /usr/share/cppcheck/addons/misra.py

@@ -1,0 +1,27 @@
+; ****************************************************************************
+; * @file    : pfa_imp.sct
+; * @author  : ZJY
+; * @version : V1.0
+; * @date    : 2026-08-26
+; * @brief   : STM32F103RET6 的 armlink 分散加载描述（Keil MDK AC6 本地开发用）
+; * @attention: 与 GCC 侧的 firmware/startup/stm32f103xe_flash.ld 是同一份内存布局
+; *             的两种描述；改动其一必须同步另一份。未定义 ARM_LIB_HEAP：本项目
+; *             禁止动态内存分配，任何用到堆的库函数都会在链接期报错。
+; ****************************************************************************
+
+LR_IROM1 0x08000000 0x00080000  {    ; 512 KB Flash
+    ER_IROM1 0x08000000 0x00080000  {
+        startup_stm32f103xe.o (.isr_vector, +First)
+        *(InRoot$$Sections)
+        .ANY (+RO)
+        .ANY (+XO)
+    }
+
+    ; SRAM 共 64 KB，末端 1 KB 留给主栈，其余给 RW/ZI
+    RW_IRAM1 0x20000000 0x0000FC00  {
+        .ANY (+RW +ZI)
+    }
+
+    ARM_LIB_STACK 0x20010000 EMPTY -0x00000400  {
+    }
+}

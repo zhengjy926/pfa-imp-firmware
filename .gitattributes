@@ -1,3 +1,13 @@
 * text=auto eol=lf
 *.s text eol=lf
+*.S text eol=lf
+*.ld text eol=lf
+*.sct text eol=lf
 *.md text eol=lf
+
+# µVision 保存工程时写 CRLF；跟着它走，避免每次打开工程就产生全文件 diff
+# （.uvoptx 是本机窗口/调试配置，已被 .gitignore 排除，不必在此列出）
+*.uvprojx text eol=crlf
+
+# 第三方入仓副本保持上游字节原样（上游多为 CRLF），使副本可与发行 tag 逐字节比对
+firmware/third_party/** -text

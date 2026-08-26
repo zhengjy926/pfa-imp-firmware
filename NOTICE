@@ -2,14 +2,25 @@
 
 本仓库为私有仓库。本文件记录进入仓库的第三方开源/许可组件（取证产品合规要求）。
 
-当前状态（M0）：**尚无第三方组件进入仓库**。
+第三方源码一律放在 `firmware/third_party/<组件>/` 下，并在该目录内保留上游许可证
+正文；`.gitattributes` 对该子树关闭行尾归一化，使入仓副本与上游发行 tag 逐字节可比对。
+静态分析与 MISRA 扫描排除该子树（见 ADR 0004）。
 
-M1 起预计引入，届时逐项补全下表（组件 | 版本 | 来源 | 许可证 | 修改说明）：
+## 已进入仓库
 
 | 组件 | 版本 | 来源 | 许可证 | 修改说明 |
 |---|---|---|---|---|
-| FreeRTOS Kernel | 待定（LTS tag） | github.com/FreeRTOS/FreeRTOS-Kernel | MIT | 原样 |
-| EasyLogger | 待定 | github.com/armink/EasyLogger | MIT | 原样 |
-| SEGGER RTT | 随本机 J-Link 版本 | SEGGER J-Link 安装包 | SEGGER 专有（随 J-Link 分发） | 原样 |
-| STM32F1 HAL/CMSIS | 待定 | github.com/STMicroelectronics/STM32CubeF1 | BSD-3-Clause | 仅拷贝用到的模块 |
-| Zephyr sys 子集（ring_buffer/crc/dlist/device.h 等） | 待定（M1 锁定 tag） | github.com/zephyrproject-rtos/zephyr | Apache-2.0 | 裁剪 + compat 内核桩适配 |
+| CMSIS-Core (Cortex-M) | 发行 tag `5.9.0` | github.com/ARM-software/CMSIS_5 | Apache-2.0 | 原样拷贝 `CMSIS/Core/Include/` 下本项目实际用到的 5 个头文件：`core_cm3.h`、`cmsis_compiler.h`、`cmsis_gcc.h`、`cmsis_armclang.h`、`cmsis_version.h`。未拷贝其余架构与 MPU 头（STM32F103 无 MPU）。保留原 SPDX 版权头。 |
+| STM32F1 CMSIS 设备层 | 发行 tag `v4.3.5` | github.com/STMicroelectronics/cmsis-device-f1 | Apache-2.0 | 仅拷贝 `Include/` 下 3 个头文件：`stm32f1xx.h`、`stm32f103xe.h`、`system_stm32f1xx.h`。**未使用**上游 `Source/Templates/` 的 `system_stm32f1xx.c` 与启动文件模板——按 ADR 0001，时钟初始化、启动文件与中断向量为自研手工维护（见 `firmware/system/` 与 `firmware/startup/`）。上游头文件未带 SPDX 标识，原版权与许可声明原样保留。 |
+
+## 计划引入，尚未入仓
+
+下列组件在规划中，实际入仓时逐项补全上表并锁定具体版本。尚未入仓即尚未产生合规义务。
+
+| 组件 | 预期来源 | 许可证 | 备注 |
+|---|---|---|---|
+| FreeRTOS Kernel | github.com/FreeRTOS/FreeRTOS-Kernel | MIT | 锁定 LTS tag；作为 `sys/compat` 内核桩与后续任务的调度基础 |
+| Zephyr sys 子集（ring_buffer / crc / dlist / slist / util / device 核心） | github.com/zephyrproject-rtos/zephyr | Apache-2.0 | 从 v4.x **发行 tag** 拷贝裁剪（禁止跟随 main），保留 SPDX 版权头；见 ADR 0004 |
+| STM32F1 HAL 驱动 | github.com/STMicroelectronics/stm32f1xx-hal-driver | BSD-3-Clause | 只拷贝板级总线实际用到的模块；随 HAL 总线设备注册一并引入 |
+| EasyLogger | github.com/armink/EasyLogger | MIT | 本里程碑无调用点，推迟引入 |
+| SEGGER RTT | SEGGER J-Link 安装包 | SEGGER 专有（随 J-Link 分发） | 本里程碑无调用点，推迟引入 |

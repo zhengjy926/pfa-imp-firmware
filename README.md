@@ -4,7 +4,8 @@ PFA（脉冲电场消融）手术回路阻抗采集板固件。
 
 **硬件基线**：STM32F103RET6 + AD5941（SPI1，阻抗测量）+ IO 扩展驱动多路继电器（电极 24、顶电极/顶电极极性/杆极性/标测/回路/负极板各 1）+ AT24C256C（I2C2，参数存储）+ USART1（调试桥）/ USART3（上位机）/ UART5（贴靠阻抗采集板）。放电使能不在本板。
 
-> ⚠️ 当前状态：**M0 仓库骨架**。固件源码自 M1 起进入 `firmware/`。
+> ⚠️ 当前状态：**M1 进行中**。固件分层树已落在 `firmware/`，双工具链可编译并链出镜像；
+> 尚未实现工作模式、组态预设、阻抗测量与 ECSP 产品命令。
 
 ## 文档
 
@@ -16,10 +17,11 @@ PFA（脉冲电场消融）手术回路阻抗采集板固件。
 | [docs/protocol/ecsp.md](docs/protocol/ecsp.md) | ECSP 通用规范钉扎快照（设备组标准，非本仓库真源） |
 | [docs/protocol/loop-impedance-board.md](docs/protocol/loop-impedance-board.md) | 回路阻抗采集板产品命令 |
 | [docs/research/pfa-discharge-circuit.md](docs/research/pfa-discharge-circuit.md) | PFA 放电回路与术语对照（厂家 IFU / PMA / 标准） |
-| [docs/pin-map.md](docs/pin-map.md) | 引脚映射事实源（M1 提供） |
-| [docs/architecture.md](docs/architecture.md) | 分层架构说明（M1 提供） |
+| [docs/build.md](docs/build.md) | 构建与工具链：双工具链约定、静态分析、版本与时钟 |
+| `docs/pin-map.md` | 引脚映射事实源（尚未落地） |
+| `docs/architecture.md` | 分层架构说明（尚未落地） |
 
-## 目录规划（M1 起落位）
+## 目录落位
 
 ```
 firmware/
@@ -28,19 +30,35 @@ firmware/
 ├── subsys/       # 自研子系统：protocol / params / relay_map / log
 ├── sys/          # 拷贝裁剪的 Zephyr sys 库 + device 核心 + compat 内核桩
 ├── bsp/          # 板级：初始化、引脚、HAL 总线设备注册
-├── third_party/  # FreeRTOS / EasyLogger / SEGGER RTT / STM32 HAL
-├── startup/ system/  # 启动文件、FreeRTOSConfig、中断
-└── MDK-ARM/      # Keil 工程
-tests/            # 主机单元测试（Unity/CMock，CI 执行）
+├── third_party/  # 第三方组件（CMSIS / STM32 HAL / FreeRTOS / ...）
+├── startup/      # 启动文件、中断向量、GNU ld 链接脚本
+├── system/       # 时钟与 Flash 时序初始化
+└── MDK-ARM/      # Keil 工程与 armlink 分散加载描述
 ```
+
+`drivers/`、`subsys/`、`sys/` 目前只有占位；主机单元测试树 `tests/` 尚未落地。
 
 ## 构建
 
-- **本地开发**：Keil MDK 5.43（AC6），工程 `firmware/MDK-ARM/pfa_imp.uvprojx`（M1 提供）。
-- **CI**：GitHub Actions——cppcheck（MISRA C:2012）+ 主机单元测试 + arm-none-eabi-gcc 编译验证（M1 启用，当前为骨架冒烟检查）。
+- **本地开发**：Keil MDK（AC6），工程 `firmware/MDK-ARM/pfa_imp.uvprojx`，手工维护，不用 STM32CubeMX。
+- **CI 编译验证**：CMake + arm-none-eabi-gcc 交叉编译并链出镜像，不产出烧录件。
+
+```bash
+cmake -S firmware -B build/firmware -G Ninja \
+      -DCMAKE_TOOLCHAIN_FILE="$PWD/cmake/toolchain-arm-none-eabi.cmake" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build/firmware
+```
+
+CI 另跑 cppcheck（MISRA C:2012）静态分析、双工具链源登记核对与「镜像内无动态内存分配」
+核对。主机单元测试（Unity）尚未落地。细节见 [docs/build.md](docs/build.md)。
 
 ## 工程约定
 
-- 分支：trunk-based（`main` 直进）；版本：语义化版本，0.1.0 起；提交：Conventional Commits。
+- 分支：trunk-based（`main` 直进）；提交：Conventional Commits。
+- 版本：语义化版本，0.1.0 起；事实源 `firmware/app/include/app_version.h`，CMake 从其解析。
+- 代码：C99、MISRA C:2012、禁止动态内存分配。
+- 头文件保护宏写 `PFA_<模块>_H`，**不带前导下划线**：`__XXX_H__` 是 C 标准保留给实现的
+  标识符，会触 MISRA Rule 21.1。为此不值得写一条整类偏离，改个名就干净了。
 - 代码标识符/提交信息英文，注释与文档中文。
 - 本仓库为私有仓库，未附开源许可证；第三方组件清单见 [NOTICE](NOTICE)。
