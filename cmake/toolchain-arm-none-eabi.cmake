@@ -3,9 +3,9 @@
 # * @author  : ZJY
 # * @version : V1.0
 # * @date    : 2026-08-26
-# * @brief   : arm-none-eabi-gcc 交叉编译工具链描述（CI 编译验证用，见 ADR 0001）
+# * @brief   : arm-none-eabi-gcc 交叉编译工具链描述（CI 硬门禁与本机预检，见 ADR 0001）
 # * @attention: 本工具链只用于「源码能编过、能链出镜像」的验证，不产出发布烧录件。
-# *             本机开发与调试仍走 Keil MDK 工程。
+# *             本机开发、调试与烧录仍走 Keil MDK 工程。
 # ****************************************************************************
 
 set(CMAKE_SYSTEM_NAME Generic)

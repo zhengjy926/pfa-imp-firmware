@@ -8,9 +8,9 @@ tools/firmware_tree.py，那里也说明了为什么它与源登记门禁共用�
 被扫描的文件列表由目录结构推导，而不是写死清单：新增自研源文件会自动进入扫描，
 不需要再改这个脚本。
 
-本地与 CI 走同一个入口，避免「CI 上才发现」。cppcheck 本体与 MISRA 插件的位置由脚本
-自己探测，不在 CI 配置里写死路径——各发行版把 misra.py 装在不同地方，写死会让门禁在换
-runner 镜像时静默失效。用法：
+本地与 CI 走同一个入口，避免「CI 上才发现」。明文环境把本命令当提交前预检；硬门禁
+仍是 CI。cppcheck 本体与 MISRA 插件的位置由脚本自己探测，不在 CI 配置里写死路径——
+各发行版把 misra.py 装在不同地方，写死会让门禁在换 runner 镜像时静默失效。用法：
     run_cppcheck.py [--cppcheck <exe>] [--addon <misra.py 或 misra>]
 """
 
@@ -37,8 +37,10 @@ SYSTEM_INCLUDE_DIRS = (
     "firmware/third_party/cmsis_device_f1/Include",
 )
 
-# Windows 安装包不改 PATH，安装位置却是固定的
+# Windows 安装包不改 PATH。本仓库开发机把工具放在 D:\DevTools，官方 MSI 默认则是
+# Program Files；两处都探测，避免「装了但脚本说找不到」。
 WINDOWS_CPPCHECK_PATHS = (
+    pathlib.Path(r"D:\DevTools\Cppcheck\cppcheck.exe"),
     pathlib.Path(r"C:\Program Files\Cppcheck\cppcheck.exe"),
     pathlib.Path(r"C:\Program Files (x86)\Cppcheck\cppcheck.exe"),
 )
@@ -48,8 +50,8 @@ CIPHERTEXT_MAGIC = b"%TSD-Header-###%"
 
 CIPHERTEXT_HINT = """\
 cppcheck 读到的是密文而不是源码，上面的告警全部无效——它分析的是加密后的字节。
-本机的透明加密客户端按可执行文件放行，cppcheck 不在受信任程序列表里。
-请 IT 把 cppcheck.exe 加进该列表；在那之前，静态分析门禁以 CI 的结果为准
+本机扫描因此跳过（退出码 0），不代表 MISRA 已通过。
+请 IT 把 cppcheck.exe 加进透明加密客户端的放行名单；在那之前，静态分析硬门禁以 CI 为准
 （仓库里存的是明文，CI 上的扫描不受影响）。"""
 
 
@@ -103,6 +105,7 @@ def locate_misra_addon(cppcheck: str) -> str:
         pathlib.Path("/usr/share/cppcheck/addons"),
         pathlib.Path("/usr/lib/cppcheck/addons"),
         pathlib.Path("/usr/local/share/cppcheck/addons"),
+        pathlib.Path(r"D:\DevTools\Cppcheck\addons"),
         pathlib.Path(r"C:\Program Files\Cppcheck\addons"),
     ]
 
@@ -205,6 +208,7 @@ def main() -> int:
 
     if completed.returncode != 0 and reads_ciphertext(cppcheck, sources[0], repo_root):
         print(CIPHERTEXT_HINT, file=sys.stderr)
+        return 0
 
     return completed.returncode
 

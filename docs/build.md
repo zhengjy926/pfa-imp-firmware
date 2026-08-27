@@ -1,7 +1,8 @@
 # 构建与工具链
 
-本仓库并行维护两套工程描述：本机开发用手工维护的 Keil MDK 工程，CI 用 CMake +
-arm-none-eabi-gcc 做编译验证。取舍与代价见 [ADR 0001](adr/0001-dual-build-toolchain.md)。
+本仓库并行维护两套工程描述：本机开发、调试与烧录用手工维护的 Keil MDK 工程，
+CMake + arm-none-eabi-gcc 给 CI 硬门禁和本机提交前预检。取舍与代价见
+[ADR 0001](adr/0001-dual-build-toolchain.md)。不加 git hook：忘了跑预检由 CI 打回。
 
 **不使用 STM32CubeMX。** 引脚映射、启动文件与中断向量手工维护，`.uvprojx` 也是手写的。
 CubeMX 生成的初始化代码与工程不接受进入本仓库。`SystemInit` 用 cmsis-device-f1
@@ -13,10 +14,9 @@ CubeMX 生成的初始化代码与工程不接受进入本仓库。`SystemInit` 
 
 前置条件：
 
-- Keil MDK 5.42 或更高，编译器用 Arm Compiler for Embedded 6（AC6）。规划基线是
-  MDK 5.43；当前开发机实测为 MDK 5.42 + AC6 6.23，工程按 AC6 配置，两者均可打开。
-  `.uvprojx` 里的 `pCCUsed` 记的是 6.23，装了别的 AC6 小版本时 µVision 会提示切换，
-  照提示选本机版本即可；
+- Keil MDK 5.42 或更高，编译器用 Arm Compiler for Embedded 6（AC6）。当前开发机
+  实测为 MDK Plus 5.43 + AC6 6.24；`.uvprojx` 里的 `pCCUsed` 记的是 6.24。装了
+  别的 AC6 小版本时 µVision 会提示切换，照提示选本机版本即可；
 - 设备支持包 `Keil.STM32F1xx_DFP`（本机实测 2.4.1）。没装的话用 Pack Installer 装上，
   否则 µVision 打不开器件选择。
 
@@ -29,7 +29,10 @@ CubeMX 生成的初始化代码与工程不接受进入本仓库。`SystemInit` 
 
 ## CI 与本机的 CMake 构建
 
+本机预检与 CI `firmware` job 同一组命令（源登记 + 交叉编译）。提交前应当跑，不强制：
+
 ```bash
+python tools/check_source_registration.py
 cmake -S firmware -B build/firmware -G Ninja \
       -DCMAKE_TOOLCHAIN_FILE="$PWD/cmake/toolchain-arm-none-eabi.cmake" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -40,9 +43,13 @@ cmake --build build/firmware
 （`tools/check_no_dynamic_alloc.py`）。
 
 CI **只做编译验证，不产出烧录件**：workflow 不上传 `.elf` / `.hex`，发布件一律来自
-本机 Keil 构建。
+本机 Keil（AC6）构建。本机链出的 GCC 镜像同样不算烧录件。
 
-这带来一个需要说清的错位：`check_no_dynamic_alloc.py` 只挂在 CMake 的 `POST_BUILD`
+本机 `arm-none-eabi-gcc` 与 CI `ubuntu-latest` 的 `apt` 包**不钉成同一版本**。第二套
+编译器的意义是「不是 AC6 也能编」，不是复现开发机上的 GNU 大版本。
+
+发布件与 GCC 验证镜像不是同一份，这带来一个需要说清的错位：
+`check_no_dynamic_alloc.py` 只挂在 CMake 的 `POST_BUILD`
 上，被它检查的是那个**不发布**的 GCC 镜像。发布件走的是另一道机制——工程选用
 MicroLIB 且 `pfa_imp.sct` 刻意不定义 `ARM_LIB_HEAP`，任何用到堆的库函数在 armlink
 链接期就会报错。两道机制各自成立，但覆盖面不等价：GCC 侧是按符号名扫成品镜像，
@@ -96,11 +103,16 @@ scatter-load，GCC 自行搬 `.data`、清 `.bss`）。这样 60 路 IRQ 的向�
 
 ## 静态分析
 
-AC6 没有内置 MISRA 检查，合规门禁由 cppcheck 承担：
+AC6 没有内置 MISRA 检查，合规硬门禁由 CI 上的 cppcheck 承担。明文环境（例如未开
+透明加密的机器）提交前应当再跑一遍本机预检：
 
 ```bash
-python3 tools/run_cppcheck.py
+python tools/run_cppcheck.py
 ```
+
+公司电脑上透明加密客户端若不放行 `cppcheck.exe`，它读到的是密文，告警全部无效。
+脚本检测到这种情况后**退出码 0** 并声明本机扫描无效——不代表 MISRA 已通过；硬门禁
+仍是 CI（仓库里是明文）。请 IT 把 `cppcheck.exe` 加进放行名单后，本机预检才有意义。
 
 `misra.py` 的位置由脚本按已知路径探测（找不到则退回插件名 `misra`），因此 CI 配置里
 不写死路径——各发行版装的地方不一样，写死会让门禁在换 runner 镜像时静默失效。位置特殊

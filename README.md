@@ -39,8 +39,8 @@ firmware/
 
 ## 构建
 
-- **本地开发**：Keil MDK（AC6），工程 `firmware/MDK-ARM/pfa_imp.uvprojx`，手工维护，不用 STM32CubeMX。
-- **CI 编译验证**：CMake + arm-none-eabi-gcc 交叉编译并链出镜像，不产出烧录件。
+- **本地开发**：Keil MDK（AC6）编译、µVision 调试与烧录，工程 `firmware/MDK-ARM/pfa_imp.uvprojx`，手工维护，不用 STM32CubeMX。烧录件只认 AC6。
+- **本机预检 / CI 验证**：CMake + arm-none-eabi-gcc 交叉编译并链出镜像，不产出烧录件。
 
 ```bash
 cmake -S firmware -B build/firmware -G Ninja \
@@ -49,15 +49,14 @@ cmake -S firmware -B build/firmware -G Ninja \
 cmake --build build/firmware
 ```
 
-CI 另跑 cppcheck（MISRA C:2012）静态分析、双工具链源登记核对与「镜像内无动态内存分配」
-核对。主机单元测试（Unity）尚未落地。细节见 [docs/build.md](docs/build.md)。
+提交前本机预检与 CI 同一套：源登记核对、CMake 构建（含无动态内存分配核对）、明文环境下的
+cppcheck（MISRA C:2012）。cppcheck 读到密文则跳过，硬门禁在 CI。主机单元测试（Unity）
+尚未落地。细节见 [docs/build.md](docs/build.md)。
 
 ## 工程约定
 
 - 分支：trunk-based（`main` 直进）；提交：Conventional Commits。
 - 版本：语义化版本，0.1.0 起；事实源 `firmware/app/include/app_version.h`，CMake 从其解析。
 - 代码：C99、MISRA C:2012、禁止动态内存分配。
-- 头文件保护宏写 `PFA_<模块>_H`，**不带前导下划线**：`__XXX_H__` 是 C 标准保留给实现的
-  标识符，会触 MISRA Rule 21.1。为此不值得写一条整类偏离，改个名就干净了。
 - 代码标识符/提交信息英文，注释与文档中文。
 - 本仓库为私有仓库，未附开源许可证；第三方组件清单见 [NOTICE](NOTICE)。

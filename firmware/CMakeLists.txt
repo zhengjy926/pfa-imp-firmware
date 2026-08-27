@@ -3,10 +3,10 @@
 # * @author  : ZJY
 # * @version : V1.0
 # * @date    : 2026-08-26
-# * @brief   : 回路阻抗采集板固件的 CMake 构建描述（CI 交叉编译验证，见 ADR 0001）
+# * @brief   : 回路阻抗采集板固件的 CMake 构建描述（CI 硬门禁与本机预检，见 ADR 0001）
 # * @attention: 这里的源文件清单与 MDK-ARM/pfa_imp.uvprojx 必须一一对应。新增或
-# *             删除源文件时两处都要改，由 tools/check_source_registration.py 在
-# *             CI 上强制核对。详见 docs/build.md。
+# *             删除源文件时两处都要改，由 tools/check_source_registration.py 核对。
+# *             详见 docs/build.md。
 # ****************************************************************************
 
 cmake_minimum_required(VERSION 3.20)
